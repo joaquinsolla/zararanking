@@ -30,7 +30,11 @@ public class OrderServiceImpl implements OrderService {
         Map<String, Object> params = new HashMap<>();
         params.put("limit", limit);
 
-        String sql = "";
+        String sql = """
+                    SELECT * FROM ORDERS
+                    ORDER BY DATE DESC
+                    LIMIT :limit
+                    """;
 
         return jdbcTemplate.query(sql, params, new BeanPropertyRowMapper<>(Order.class));
     }
@@ -62,10 +66,27 @@ public class OrderServiceImpl implements OrderService {
         // Escribe la query para recuperar la entidad OrderDetail por ID
         Map<String, Object> params = new HashMap<>();
         params.put("orderId", orderId);
-        OrderDetail orderDetail = null;
+        String orderDetailSql = """
+                                  SELECT * 
+                                  FROM ORDERS
+                                  WHERE ID = :orderId
+                                  """;
+        List<OrderDetail> orderDetailList = jdbcTemplate.query(orderDetailSql, params, new BeanPropertyRowMapper<>(OrderDetail.class));
+        OrderDetail orderDetail = orderDetailList.get(0);
+
+        if (orderDetailList.isEmpty()) throw new com.inditex.zboost.exception.NotFoundException("404", "Not found: order " + String.valueOf(orderId));
 
         // Una vez has conseguido recuperar los detalles del pedido, faltaria recuperar los productos que forman parte de el...
-        String productOrdersSql = "";
+        String productOrdersSql = """
+                                  SELECT p.ID, NAME, p.PRICE, p.CATEGORY, p.IMAGE_URL
+                                  FROM PRODUCT p
+                                  WHERE p.ID IN (
+                                    SELECT oi.PRODUCT_ID 
+                                    FROM ORDER_ITEMS oi
+                                    WHERE oi.ORDER_ID = :orderId
+                                  )
+                                  """;
+
         List<ProductOrderItem> products = jdbcTemplate.query(productOrdersSql, params, new BeanPropertyRowMapper<>(ProductOrderItem.class));
 
         orderDetail.setProducts(products);

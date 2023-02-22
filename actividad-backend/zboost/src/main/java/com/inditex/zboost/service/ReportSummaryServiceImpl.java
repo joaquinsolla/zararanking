@@ -24,7 +24,11 @@ public class ReportSummaryServiceImpl implements ReportSummaryService {
          * TODO: EJERCICIO 3. Reporte sumarizado
          */
 
-        String sql = "";
+        String sql = """
+SELECT COUNT(P.ID), COUNT(O.ID), SUM(P.PRICE), COUNT(P.NAME)
+            FROM P PRODUCTS JOIN I ORDER_ITEMS ON P.ID = I.PRODUCT_ID
+            JOIN O ORDERS ON I.ORDER_ID = O.ID
+""";
         ReportSummary reportSummary = jdbcTemplate.queryForObject(sql, Map.of(), new BeanPropertyRowMapper<>(ReportSummary.class));
 
         String totalProductsByCategorySql = "";
